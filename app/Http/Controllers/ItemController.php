@@ -137,7 +137,26 @@ class ItemController extends Controller
      */
     public function show($id)
     {
-        //
+        try {
+            $item = $this->model->with('images', 'owner')->find($id);
+            if (!$item) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Item not found.',
+                ], 404);
+            }
+            return response()->json([
+                'status' => true,
+                'data' => $item,
+            ], 200);
+        } catch (\Exception $ex) {
+            \Log::error('Error in ItemController@show: ' . $ex->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => 'An error occurred while fetching the item.',
+                'error' => $ex->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -221,6 +240,32 @@ class ItemController extends Controller
                     unlink($file_path);
                 }
             }
+        }
+    }
+
+    public function getItemsByCategory(Request $request, $id){
+        try {
+            $search = $request->input('search');
+            $items = $this->model::query();
+            if($id){
+                $items->where('category_id', $id);
+            }
+            if($search){
+                $items->where('name', 'like', '%' . $search . '%');
+            }
+            $items->with('images');
+            $items = $items->get();
+            return response()->json([
+                'status' => true,
+                'data' => $items,
+            ], 200);
+        } catch (\Exception $ex) {
+            \Log::error('Error in CategoryController@getItemsByCategory: ' . $ex->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => 'An error occurred while fetching items by category.',
+                'error' => $ex->getMessage(),
+            ], 500);
         }
     }
 }

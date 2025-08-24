@@ -15,6 +15,9 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+Route::get('/items/get-items/{id}', [ItemController::class,'getItemsByCategory'])->name('get-items');
+
+
 Route::resources([
    'items' => ItemController::class,
    'user' => UserController::class,

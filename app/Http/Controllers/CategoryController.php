@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use App\Models\Items;
 use Illuminate\Http\Request;
 
 class CategoryController extends Controller
@@ -13,10 +14,15 @@ class CategoryController extends Controller
      * @return void
      */
     public $model;
+    public $item;
 
-    public function __construct(Category $model)
+    public function __construct(
+        Category $model,
+        Items $item
+    )
     {
         $this->model = $model;
+        $this->item = $item;
     }
     /**
      * Display a listing of the resource.
@@ -150,6 +156,7 @@ class CategoryController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
+
     public function destroy($id)
     {
        try {
