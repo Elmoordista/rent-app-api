@@ -40,14 +40,21 @@ Route::get('/migrate-db', function() {
 });
 
 
-Route::resources([
-   'items' => ItemController::class,
-   'user' => UserController::class,
-   'category' => CategoryController::class,
-   'order' => OrderController::class,
-]);
+Route::post('/user/login', [LoginController::class, 'store'])->name('user-login.store');
 
-    
+Route::middleware('auth:sanctum')->group(function () {
+
+   Route::get('/user/info', [UserController::class, 'getInfo'])->name('user.info');
+
+   Route::resources([
+      'items' => ItemController::class,
+      'user' => UserController::class,
+      'category' => CategoryController::class,
+      'order' => OrderController::class,
+      'login' => LoginController::class,
+   ]);
+
+});
 
 // Route::middleware('auth:api')->get('/user', function (Request $request) {
 //     return $request->user();
