@@ -24,6 +24,6 @@ class Payments extends Model
 
     public function getProofOfPaymentUrlAttribute()
     {
-        return asset($this->proof_of_payment);
+        return url($this->proof_of_payment);
     }
 }

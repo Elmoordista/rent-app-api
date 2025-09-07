@@ -23,6 +23,6 @@ class ItemImages extends Model
 
     public function getImageUrlAttribute()
     {
-        return asset($this->image_path);
+        return url($this->image_path);
     }
 }
