@@ -29,8 +29,18 @@ Route::get('/clear-cache', function() {
 });
 
 Route::get('/migrate-db-fresh', function() {
-    Artisan::call('migrate:fresh');
-    return 'Database migrated fresh';
+    // Run your app migrations first
+    Artisan::call('migrate:fresh', [
+        '--force' => true,
+    ]);
+
+    // Then run Sanctum migrations
+    Artisan::call('migrate', [
+        '--path' => 'vendor/laravel/sanctum/database/migrations',
+        '--force' => true,
+    ]);
+
+    return Artisan::output();
 });
 
 Route::get('/migrate-db', function() {
@@ -42,6 +52,17 @@ Route::get('/migrate-db', function() {
 Route::post('/user/login', [LoginController::class, 'store'])->name('user-login.store');
 Route::post('/user/login-admin', [LoginController::class, 'adminLogin'])->name('user-login.admin');
 Route::post('/user/signup', [UserController::class, 'signup'])->name('user.signup');
+Route::get('/create-sqlite', function () {
+    $path = database_path('database.sqlite'); // points to database/database.sqlite
+
+    if (!file_exists($path)) {
+        // Create empty file
+        file_put_contents($path, '');
+        return 'SQLite database created successfully!';
+    }
+
+    return 'Database already exists.';
+});
 
 Route::middleware('auth:sanctum')->group(function () {
 
