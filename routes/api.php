@@ -28,19 +28,20 @@ Route::get('/clear-cache', function() {
     return 'Caches cleared';
 });
 
-Route::get('/migrate-db-fresh', function() {
-    // Run your app migrations first
-    Artisan::call('migrate:fresh', [
-        '--force' => true,
-    ]);
+Route::get('/create-sqlite', function () {
+    $path = env('DB_DATABASE', '/mnt/data/database.sqlite'); // writable path
+    $dir = dirname($path);
 
-    // Then run Sanctum migrations
-    Artisan::call('migrate', [
-        '--path' => 'vendor/laravel/sanctum/database/migrations',
-        '--force' => true,
-    ]);
+    if (!is_dir($dir)) {
+        mkdir($dir, 0755, true);
+    }
 
-    return Artisan::output();
+    if (!file_exists($path)) {
+        file_put_contents($path, '');
+        return "SQLite database created successfully at: $path";
+    }
+
+    return "Database already exists at: $path";
 });
 
 Route::get('/migrate-db', function() {
