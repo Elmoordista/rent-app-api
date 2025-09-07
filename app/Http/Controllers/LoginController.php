@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use GrahamCampbell\ResultType\Success;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -92,6 +93,23 @@ class LoginController extends Controller
     public function destroy($id)
     {
         //
+    }   
+    public function adminLogin(Request $request)
+    {
+        $credentials = $request->only('email', 'password');
+        //check if user is admin
+        $user = User::where('email', $credentials['email'])->first();
+        if (!$user || $user->role !== 'admin') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+        if (Auth::attempt($credentials)) {
+            //create token and pass it
+            $user = Auth::user();
+            $token = Auth::user()->createToken('rentApp')->plainTextToken;
+            return response()->json(['message' => 'Admin login successful', 'user' => $user, 'token' => $token, 'success' => true], 200);
+        }
+
+        return response()->json(['message' => 'Invalid credentials'], 401);
     }
 
     

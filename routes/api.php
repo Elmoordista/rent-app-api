@@ -40,6 +40,7 @@ Route::get('/migrate-db', function() {
 
 
 Route::post('/user/login', [LoginController::class, 'store'])->name('user-login.store');
+Route::post('/user/login-admin', [LoginController::class, 'adminLogin'])->name('user-login.admin');
 Route::post('/user/signup', [UserController::class, 'signup'])->name('user.signup');
 
 Route::middleware('auth:sanctum')->group(function () {
