@@ -52,16 +52,32 @@ Route::get('/migrate-db', function() {
 Route::post('/user/login', [LoginController::class, 'store'])->name('user-login.store');
 Route::post('/user/login-admin', [LoginController::class, 'adminLogin'])->name('user-login.admin');
 Route::post('/user/signup', [UserController::class, 'signup'])->name('user.signup');
-Route::get('/create-sqlite', function () {
-    $path = database_path('database.sqlite'); // points to database/database.sqlite
+// Route::get('/create-sqlite', function () {
+//     $path = database_path('database.sqlite'); // points to database/database.sqlite
 
-    if (!file_exists($path)) {
-        // Create empty file
-        file_put_contents($path, '');
-        return 'SQLite database created successfully!';
+//     if (!file_exists($path)) {
+//         // Create empty file
+//         file_put_contents($path, '');
+//         return 'SQLite database created successfully!';
+//     }
+
+//     return 'Database already exists.';
+// });
+
+Route::get('/create-sqlite', function () {
+    $path = database_path('database.sqlite'); // resolves to your project database folder
+
+    // Make sure parent directory exists
+    if (!is_dir(dirname($path))) {
+        mkdir(dirname($path), 0755, true); // recursively create folder
     }
 
-    return 'Database already exists.';
+    if (!file_exists($path)) {
+        file_put_contents($path, '');
+        return "SQLite database created successfully at: $path";
+    }
+
+    return "Database already exists at: $path";
 });
 
 Route::middleware('auth:sanctum')->group(function () {
