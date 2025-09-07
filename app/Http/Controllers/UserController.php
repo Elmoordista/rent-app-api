@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Bookings;
+use App\Models\Favorite;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -173,5 +175,55 @@ class UserController extends Controller
     {
         $user = Auth::user();
         return response()->json(['data' => $user], 200);
+    }
+    public function getProfileSettings(Request $request)
+    {
+        $user = Auth::user();
+        $pendingBookings = Bookings::where('user_id', $user->id)
+            ->whereIn('status', ['pending'])
+            ->count();
+        $favorites = Favorite::where('user_id', $user->id)->count();
+        return response()->json(['data' => $user, 'pendingBookings' => $pendingBookings, 'favorites' => $favorites], 200);
+    }
+
+    public function getFavorites(Request $request)
+    {
+        $user = Auth::user();
+        $favorites = Favorite::where('user_id', $user->id)
+            ->with('item.images')
+            ->get();
+        return response()->json(['data' => $user, 'favorites' => $favorites], 200);
+    }
+
+    public function removeFavorite(Request $request, $id)
+    {
+        $user = Auth::user();
+        $favorite = Favorite::where('user_id', $user->id)
+            ->where('item_id', $id)
+            ->first();
+        if($favorite){
+            $favorite->delete();
+            return response()->json(['message' => 'Favorite removed', 'success' => true], 200);
+        } else {
+            return response()->json(['message' => 'Favorite not found', 'success' => false], 404);
+        }
+    }
+
+
+    public function signup(Request $request)
+    {
+        $data = $request->all();
+        $data['password'] = bcrypt($data['password']);
+        $data['username'] = $data['email'];
+
+        //check if email is already taken
+        $existingUser = User::where('email', $data['email'])->first();
+        if($existingUser){
+            return response()->json(['message' => 'Email is already taken', 'success' => false], 400);
+        }
+
+        User::create($data);
+
+        return response()->json(['message' => 'Signup successful', 'success' => true], 201);
     }
 }

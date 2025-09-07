@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Auth;
 
 class Items extends Model
 {
@@ -23,9 +24,27 @@ class Items extends Model
         'location',
     ];
 
+    protected $appends = ['is_favorite'];
+
     public function images()
     {
         return $this->hasMany(ItemImages::class, 'item_id', 'id');
+    }
+
+    public function reviews()
+    {
+        return $this->hasMany(ItemRating::class, 'item_id', 'id');
+    }
+    
+    public function getIsFavoriteAttribute()
+    {
+        $user = Auth::user();
+        return $user ? $this->favorites()->where('user_id', $user->id)->exists() : false;
+    }
+    
+    public function favorites()
+    {
+        return $this->hasMany(Favorite::class, 'item_id', 'id');
     }
 
     public function owner()

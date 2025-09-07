@@ -12,10 +12,18 @@ class Payments extends Model
     protected $fillable = [
         'booking_id',
         'amount',
-        'payment_method',
-        'transaction_id',
+        'proof_of_payment',
         'status',
         'notes',
         'paid_at',
     ];
+
+    protected $appends = [
+        'proof_of_payment_url',
+    ];
+
+    public function getProofOfPaymentUrlAttribute()
+    {
+        return asset($this->proof_of_payment);
+    }
 }

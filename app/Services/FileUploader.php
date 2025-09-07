@@ -9,8 +9,8 @@ class FileUploader
 
     public function storeFiles($id , $request, $folder)
     {
-        $name =  $request['file_name'];
-        $image = $request['file_path'];  // your base64 encoded
+        $name =  isset($request['file_name']) ? $request['file_name'] : Carbon::now()->timestamp . '.png';
+        $image = isset($request['file_path']) ? $request['file_path'] : $request;  // your base64 encoded
         list($type, $image) = explode(';', $image);
         list(, $image)      = explode(',', $image);
         $data = base64_decode($image);

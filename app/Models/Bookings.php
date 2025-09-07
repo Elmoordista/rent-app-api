@@ -10,7 +10,6 @@ class Bookings extends Model
     use HasFactory;
 
     protected $fillable = [
-        'item_id',
         'user_id',
         'start_date',
         'end_date',
@@ -18,5 +17,23 @@ class Bookings extends Model
         'status',
         'notes',
         'payment_status',
+        'delivery_info',
+        'payment_type',
+        'delivery_option',
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function booking_details()
+    {
+        return $this->hasMany(BookingDetail::class, 'booking_id', 'id');
+    }
+
+    public function payments()
+    {
+        return $this->hasOne(Payments::class, 'booking_id', 'id');
+    }
 }

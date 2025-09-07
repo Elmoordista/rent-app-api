@@ -15,8 +15,6 @@ class CreateBookingsTable extends Migration
     {
         Schema::create('bookings', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('item_id');
-            $table->foreign('item_id')->references('id')->on('items')->onDelete('cascade');
             $table->unsignedBigInteger('user_id');
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->dateTime('start_date'); // Booking start date and time
@@ -25,6 +23,9 @@ class CreateBookingsTable extends Migration
             $table->enum('status', ['pending', 'confirmed', 'cancelled', 'completed'])->default('pending'); // Booking status
             $table->text('notes')->nullable(); // Optional notes for the booking
             $table->string('payment_status')->default('unpaid'); // Payment status (e.g., unpaid, paid, refunded)
+            $table->string('delivery_info')->nullable(); // Delivery information
+            $table->enum('payment_type', ['cod', 'gcash'])->nullable(); // Payment type (e.g., cod, gcash)
+            $table->enum('delivery_option', ['pickup', 'delivery'])->nullable(); // Delivery option (e.g., pickup, delivery)
             $table->timestamps();
         });
     }

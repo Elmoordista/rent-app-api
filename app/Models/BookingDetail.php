@@ -5,18 +5,24 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Cart extends Model
+class BookingDetail extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'user_id',
+        'booking_id',
         'item_id',
         'quantity',
+        'price',
     ];
+
+    public function booking()
+    {
+        return $this->belongsTo(Bookings::class, 'booking_id');
+    }
 
     public function item()
     {
-        return $this->belongsTo(Items::class, 'item_id');
+        return $this->hasOne(Items::class, 'id', 'item_id');
     }
 }

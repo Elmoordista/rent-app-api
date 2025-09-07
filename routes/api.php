@@ -16,7 +16,6 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/items/get-items/{id}', [ItemController::class,'getItemsByCategory'])->name('get-items');
 
 
 Route::get('/clear-cache', function() {
@@ -41,10 +40,25 @@ Route::get('/migrate-db', function() {
 
 
 Route::post('/user/login', [LoginController::class, 'store'])->name('user-login.store');
+Route::post('/user/signup', [UserController::class, 'signup'])->name('user.signup');
 
 Route::middleware('auth:sanctum')->group(function () {
 
    Route::get('/user/info', [UserController::class, 'getInfo'])->name('user.info');
+   Route::get('/user/favorites', [UserController::class, 'getFavorites'])->name('user.favorites');
+   Route::delete('/user/favorites-remove/{id}', [UserController::class, 'removeFavorite'])->name('user.favorites.remove');
+   Route::get('/user/profile-settings', [UserController::class, 'getProfileSettings'])->name('user.profile-settings');
+
+   Route::get('/order/get-pending', [OrderController::class, 'getPendingOrders'])->name('order.get-pending');
+   Route::get('/order/get-booking-details/{booking_id}', [OrderController::class, 'getPendingOrdersDetails'])->name('order.get-pending-details');
+   Route::get('/order/get-confirmed-bookings', [OrderController::class, 'getConfirmedOrders'])->name('order.get-confirmed-bookings');
+
+   Route::post('/booking/upload-proof-of-payment', [BookingController::class, 'uploadProofOfPayment'])->name('payment.upload');
+
+   Route::get('/items/get-items/{id}', [ItemController::class,'getItemsByCategory'])->name('get-items');
+   Route::get('/items/get-reviews/{id}', [ItemController::class,'getItemReviews'])->name('get-item-reviews');
+   Route::post('/item/add-review/{id}', [ItemController::class, 'addReview'])->name('item.add-review');
+   Route::post('/item/add-to-favorite', [ItemController::class, 'addToFavorite'])->name('item.add-to-favorite');
 
    Route::resources([
       'items' => ItemController::class,
@@ -52,6 +66,8 @@ Route::middleware('auth:sanctum')->group(function () {
       'category' => CategoryController::class,
       'order' => OrderController::class,
       'login' => LoginController::class,
+      'cart' => CartController::class,
+      'booking' => BookingController::class,
    ]);
 
 });

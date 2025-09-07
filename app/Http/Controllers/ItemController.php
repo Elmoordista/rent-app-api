@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Favorite;
 use App\Models\ItemImages;
+use App\Models\ItemRating;
 use App\Models\Items;
 use App\Services\FileUploader;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class ItemController extends Controller
 {
@@ -46,6 +49,7 @@ class ItemController extends Controller
             }
             $data->with('images', 'owner', 'category')
                 ->orderBy('created_at', 'desc');
+            
             $data = $data->paginate(10);
             return response()->json([
                 'status' => true,
@@ -138,7 +142,10 @@ class ItemController extends Controller
     public function show($id)
     {
         try {
-            $item = $this->model->with('images', 'owner')->find($id);
+            $item = $this->model->with('images', 'owner')
+            ->withCount('reviews')
+            ->with('reviews.user')
+            ->find($id);
             if (!$item) {
                 return response()->json([
                     'status' => false,
@@ -254,6 +261,8 @@ class ItemController extends Controller
                 $items->where('name', 'like', '%' . $search . '%');
             }
             $items->with('images');
+            $items->withAvg('reviews', 'rating');
+
             $items = $items->get();
             return response()->json([
                 'status' => true,
@@ -266,6 +275,93 @@ class ItemController extends Controller
                 'message' => 'An error occurred while fetching items by category.',
                 'error' => $ex->getMessage(),
             ], 500);
+        }
+    }
+
+    public function getItemReviews(Request $request, $id){
+        try {
+            $item = $this->model::where('id', $id)
+            ->withAvg('reviews', 'rating')
+            ->withCount('reviews')
+            ->first();
+            if (!$item) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Item not found.',
+                ], 404);
+            }
+            $reviews = ItemRating::where('item_id', $id)
+                ->with('user')
+                ->orderBy('created_at', 'desc')
+                ->get();
+            return response()->json([
+                'status' => true,
+                'data' => $reviews,
+                'item' => $item,
+            ], 200);
+        } catch (\Exception $ex) {
+            \Log::error('Error in ItemController@getItemReviews: ' . $ex->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => 'An error occurred while fetching item reviews.',
+                'error' => $ex->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function addReview(Request $request, $id)
+    {
+        $item = $this->model->find($id);
+        if (!$item) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Item not found.',
+            ], 404);
+        }
+
+        ItemRating::create([
+            'item_id' => $id,
+            'user_id' => Auth::id(),
+            'rating' => $request->input('rating'),
+            'comment' => $request->input('comment'),
+        ]);
+        return response()->json([
+            'status' => true,
+            'message' => 'Review added successfully.',
+        ], 200);
+    }
+
+    public function addToFavorite(Request $request)
+    {
+        $item_id = $request->id;
+        $item = $this->model->find($item_id);
+        if (!$item) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Item not found.',
+            ], 404);
+        }
+
+        $user = Auth::user();
+        $favorite = $item->favorites()->where('user_id', $user->id)->first();
+
+        if ($favorite) {
+            // If already favorited, remove from favorites
+            $favorite->delete();
+            return response()->json([
+                'status' => true,
+                'message' => 'Item removed from favorites.',
+            ], 200);
+        } else {
+            // Add to favorites
+            Favorite::create([
+                'user_id' => $user->id,
+                'item_id' => $item->id,
+            ]);
+            return response()->json([
+                'status' => true,
+                'message' => 'Item added to favorites.',
+            ], 200);
         }
     }
 }
