@@ -8,7 +8,8 @@ class SQLiteServiceProvider extends ServiceProvider
 {
     public function boot()
     {
-        $path = env('DB_DATABASE', database_path('database.sqlite'));
+        // Use a writable path
+        $path = env('DB_DATABASE', '/mnt/data/database.sqlite');
         $dir = dirname($path);
 
         if (!is_dir($dir)) {
