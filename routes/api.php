@@ -28,20 +28,19 @@ Route::get('/clear-cache', function() {
     return 'Caches cleared';
 });
 
-Route::get('/create-sqlite', function () {
-    $path = env('DB_DATABASE', '/mnt/data/database.sqlite'); // writable path
-    $dir = dirname($path);
+Route::get('/migrate-db-fresh', function() {
+    // Run your app migrations first
+    Artisan::call('migrate:fresh', [
+        '--force' => true,
+    ]);
 
-    if (!is_dir($dir)) {
-        mkdir($dir, 0755, true);
-    }
+    // Then run Sanctum migrations
+    Artisan::call('migrate', [
+        '--path' => 'vendor/laravel/sanctum/database/migrations',
+        '--force' => true,
+    ]);
 
-    if (!file_exists($path)) {
-        file_put_contents($path, '');
-        return "SQLite database created successfully at: $path";
-    }
-
-    return "Database already exists at: $path";
+    return Artisan::output();
 });
 
 Route::get('/migrate-db', function() {
@@ -66,19 +65,36 @@ Route::post('/user/signup', [UserController::class, 'signup'])->name('user.signu
 // });
 
 Route::get('/create-sqlite', function () {
-    $path = database_path('database.sqlite'); // resolves to your project database folder
+    // Use /tmp for ephemeral writable storage on Render Free
+    $path = env('DB_DATABASE', '/tmp/database.sqlite');
+    $dir = dirname($path);
 
-    // Make sure parent directory exists
-    if (!is_dir(dirname($path))) {
-        mkdir(dirname($path), 0755, true); // recursively create folder
+    try {
+        // Ensure directory exists
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+
+        // Create the SQLite file if it doesn't exist
+        if (!file_exists($path)) {
+            file_put_contents($path, '');
+            return response()->json([
+                'status' => 'success',
+                'message' => "SQLite database created successfully at: $path"
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'info',
+            'message' => "Database already exists at: $path"
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => "Failed to create database: " . $e->getMessage()
+        ], 500);
     }
-
-    if (!file_exists($path)) {
-        file_put_contents($path, '');
-        return "SQLite database created successfully at: $path";
-    }
-
-    return "Database already exists at: $path";
 });
 
 Route::middleware('auth:sanctum')->group(function () {
