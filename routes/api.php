@@ -65,37 +65,45 @@ Route::post('/user/signup', [UserController::class, 'signup'])->name('user.signu
 // });
 
 Route::get('/create-sqlite', function () {
-    // Use /tmp for ephemeral writable storage on Render Free
     $path = env('DB_DATABASE', '/tmp/database.sqlite');
-    $dir = dirname($path);
-
-    try {
-        // Ensure directory exists
-        if (!is_dir($dir)) {
-            mkdir($dir, 0755, true);
-        }
-
-        // Create the SQLite file if it doesn't exist
-        if (!file_exists($path)) {
-            file_put_contents($path, '');
-            return response()->json([
-                'status' => 'success',
-                'message' => "SQLite database created successfully at: $path"
-            ]);
-        }
-
-        return response()->json([
-            'status' => 'info',
-            'message' => "Database already exists at: $path"
-        ]);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'status' => 'error',
-            'message' => "Failed to create database: " . $e->getMessage()
-        ], 500);
+    if (!file_exists($path)) {
+        file_put_contents($path, '');
     }
+    return "SQLite database ready at $path";
 });
+
+// Route::get('/create-sqlite', function () {
+//     // Use /tmp for ephemeral writable storage on Render Free
+//     $path = env('DB_DATABASE', '/tmp/database.sqlite');
+//     $dir = dirname($path);
+
+//     try {
+//         // Ensure directory exists
+//         if (!is_dir($dir)) {
+//             mkdir($dir, 0755, true);
+//         }
+
+//         // Create the SQLite file if it doesn't exist
+//         if (!file_exists($path)) {
+//             file_put_contents($path, '');
+//             return response()->json([
+//                 'status' => 'success',
+//                 'message' => "SQLite database created successfully at: $path"
+//             ]);
+//         }
+
+//         return response()->json([
+//             'status' => 'info',
+//             'message' => "Database already exists at: $path"
+//         ]);
+
+//     } catch (\Exception $e) {
+//         return response()->json([
+//             'status' => 'error',
+//             'message' => "Failed to create database: " . $e->getMessage()
+//         ], 500);
+//     }
+// });
 
 Route::middleware('auth:sanctum')->group(function () {
 
