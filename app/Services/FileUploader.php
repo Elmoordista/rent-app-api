@@ -1,28 +1,37 @@
 <?php
 
 namespace App\Services;
+
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 class FileUploader
 {
     public $default_folder = 'uploads/';
 
-    public function storeFiles($id , $request, $folder)
+    public function storeFiles($id, $request, $folder)
     {
-        $name =  isset($request['file_name']) ? $request['file_name'] : Carbon::now()->timestamp . '.png';
-        $image = isset($request['file_path']) ? $request['file_path'] : $request;  // your base64 encoded
+        $storage = Storage::disk('s3');
+
+        $name = isset($request['file_name']) ? $request['file_name'] : Carbon::now()->timestamp . '.png';
+        $image = isset($request['file_path']) ? $request['file_path'] : $request; // base64 encoded
+
+        // Decode base64
         list($type, $image) = explode(';', $image);
-        list(, $image)      = explode(',', $image);
+        list(, $image) = explode(',', $image);
         $data = base64_decode($image);
-        $imageName = $name;
-        $path = $folder .'/'. $id . '/' . $imageName;
-        //make sure the directory exists
-        if (!file_exists($this->default_folder . $folder . '/' . $id)) {
-            mkdir($this->default_folder . $folder . '/' . $id, 0777, true);
-        }
-        $upload = file_put_contents($this->default_folder . $path, $data);
+
+        // Full path on S3
+        $path = $this->default_folder . $folder . '/' . $id . '/' . $name;
+
+        // Upload to S3 without ACL
+        $upload = $storage->put($path, $data);
+
         if ($upload) {
-            return $this->default_folder.$path;
+            // Return temporary URL for private bucket
+            return $path;
+            // Or, if bucket is public:
+            // return $storage->url($path);
         } else {
             return false;
         }

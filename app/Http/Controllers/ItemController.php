@@ -9,6 +9,7 @@ use App\Models\Items;
 use App\Services\FileUploader;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class ItemController extends Controller
 {
@@ -112,7 +113,7 @@ class ItemController extends Controller
             } else {
                 $items = $this->model->create($data);
                 if ($items) {
-                    $this->uploadFile($items->id, $request->images);
+                   $this->uploadFile($items->id, $request->images);
                 } else {
                     return response()->json([
                         'status' => false,
@@ -225,7 +226,7 @@ class ItemController extends Controller
     {
         if($images){
             foreach ($images as $key => $image) {
-                $path = $this->fileUploader->storeFiles($key, $image, 'items');
+                return $path = $this->fileUploader->storeFiles($key, $image, 'items');
                 $this->model_images->create([
                     'item_id' => $item_id,
                     'image_path' => $path,
