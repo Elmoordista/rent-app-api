@@ -226,7 +226,7 @@ class ItemController extends Controller
     {
         if($images){
             foreach ($images as $key => $image) {
-                return $path = $this->fileUploader->storeFiles($key, $image, 'items');
+                $path = $this->fileUploader->storeFiles($key, $image, 'items');
                 $this->model_images->create([
                     'item_id' => $item_id,
                     'image_path' => $path,
