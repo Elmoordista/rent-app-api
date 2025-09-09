@@ -45,6 +45,7 @@ class CategoryController extends Controller
                 $data->where('status', $status);
             }
             if(!$all){
+                $data->withCount('items');
                 $data = $data->paginate(10);
             }
             else{

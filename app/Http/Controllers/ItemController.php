@@ -50,7 +50,8 @@ class ItemController extends Controller
             }
             $data->with('images', 'owner', 'category')
                 ->orderBy('created_at', 'desc');
-            
+            $data->withCount('reviews');
+            $data->withAvg('reviews', 'rating');
             $data = $data->paginate(10);
             return response()->json([
                 'status' => true,
