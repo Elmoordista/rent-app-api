@@ -31,7 +31,7 @@ class Bookings extends Model
     {
         return $this->hasMany(BookingDetail::class, 'booking_id', 'id');
     }
-
+    
     public function payments()
     {
         return $this->hasOne(Payments::class, 'booking_id', 'id');

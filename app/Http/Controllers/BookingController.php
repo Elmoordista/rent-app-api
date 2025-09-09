@@ -12,19 +12,30 @@ class BookingController extends Controller
 {
 
     public $fileUploader;
+    public $model;
     public function __construct(
-        FileUploader $fileUploader
+        FileUploader $fileUploader,
+        Bookings $model
     ){
         $this->fileUploader = $fileUploader;
+        $this->model = $model;
     }
     /**
-     * Display a listing of the resource.
+     * Display a listing of the resource. 
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index(Request $request)
     {
-        //
+        $status = isset($request->status) ? $request->status : null;
+        $bookings = $this->model::query();
+        if($status != 'all' && $status != null){
+            $bookings = $bookings->where('status', $status);
+        }
+        $bookings->with('user','booking_details.item.images','payments');
+        $bookings = $bookings->paginate(isset($request->per_page) ? $request->per_page : 10);
+
+        return response()->json($bookings);
     }
 
     /**
@@ -79,7 +90,12 @@ class BookingController extends Controller
      */
     public function update(Request $request, $id)
     {
-        //
+        $booking = $this->model::where('id', $id)->first();
+        if(!$booking){
+            return response()->json(['message' => 'Booking not found', 'success' => false], 404);
+        }
+        $booking->update($request->all());
+        return response()->json(['message' => 'Booking updated successfully', 'success' => true], 200);
     }
 
     /**
