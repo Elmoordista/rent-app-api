@@ -45,7 +45,10 @@ Route::get('/migrate-db-fresh', function() {
 });
 
 Route::get('/migrate-db', function() {
-    Artisan::call('migrate');
+    Artisan::call('migrate', [
+        '--force' => true,
+    ]);
+
     return 'Database migrated';
 });
 
