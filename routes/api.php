@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Models\PaymentAccount;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
@@ -125,6 +126,7 @@ Route::middleware('auth:sanctum')->group(function () {
       'login' => LoginController::class,
       'cart' => CartController::class,
       'booking' => BookingController::class,
+      'payment-accounts' => PaymentAccountController::class,
    ]);
 
 });
