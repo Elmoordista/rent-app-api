@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Bookings;
+use App\Models\Items;
 use App\Models\Payments;
+use App\Models\User;
 use App\Services\FileUploader;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -109,6 +111,98 @@ class BookingController extends Controller
         //
     }
 
+    public function getFilteredBookings(Request $request)
+    {
+        $filter_type = $request->filterType ?? null;
+        $day = $request->day ?? null;
+        $month = $request->month ?? null;
+        $date_from = $request->dateFrom ?? null;
+        $date_to = $request->dateTo ?? null;
+        $year = $request->year ?? null;
+
+        $bookings = $this->model::query();
+
+        // Apply filters
+        if ($filter_type == 'Day' && $day) {
+            $bookings->whereDate('created_at', Carbon::parse($day));
+        } elseif ($filter_type == 'Monthly' && $month) {
+            $bookings->whereMonth('created_at', Carbon::parse($month)->month)
+                    ->whereYear('created_at', Carbon::parse($month)->year);
+        } elseif ($filter_type == 'Date Range' && $date_from && $date_to) {
+            $bookings->whereBetween('created_at', [Carbon::parse($date_from), Carbon::parse($date_to)]);
+        } elseif ($filter_type == 'Yearly' && $year) {
+            $bookings->whereYear('created_at', $year);
+        }
+
+        $bookings->whereIn('status', ['confirmed', 'completed']);
+        $bookings = $bookings->get();
+
+        $data = [];
+        $categories = [];
+
+        // Grouping
+        if ($filter_type == 'Day') {
+            $data[] = $bookings->sum('total_price');
+            $categories[] = Carbon::parse($day)->format('Y-m-d');
+
+        } elseif ($filter_type == 'Monthly') {
+            $grouped = $bookings->groupBy(fn($row) => Carbon::parse($row->created_at)->format('d')); // "01" - "31"
+
+            for ($i = 1; $i <= 31; $i++) {
+                $day = sprintf('%02d', $i); // "01", "02"
+                $data[] = isset($grouped[$day]) ? $grouped[$day]->sum('total_price') : 0;
+                $categories[] = $day;
+            }
+
+        } elseif ($filter_type == 'Date Range') {
+            $start = Carbon::parse($date_from);
+            $end = Carbon::parse($date_to);
+            $grouped = $bookings->groupBy(fn($row) => Carbon::parse($row->created_at)->format('Y-m-d'));
+
+            $days = $start->diffInDays($end) + 1;
+            for ($i = 0; $i < $days; $i++) {
+                $date = $start->copy()->addDays($i)->format('Y-m-d');
+                $data[] = isset($grouped[$date]) ? $grouped[$date]->sum('total_price') : 0;
+                $categories[] = $date;
+            }
+
+        } elseif ($filter_type == 'Yearly') {
+            $grouped = $bookings->groupBy(fn($row) => Carbon::parse($row->created_at)->format('m')); // "01"-"12"
+
+            for ($i = 1; $i <= 12; $i++) {
+                $month = sprintf('%02d', $i);
+                $data[] = isset($grouped[$month]) ? $grouped[$month]->sum('total_price') : 0;
+                $categories[] = $month;
+            }
+        }
+
+        $total = array_sum($data);
+        $users = User::count();
+        $items = Items::count();
+        $total_earnings = $this->model::whereIn('status', ['confirmed', 'completed'])->sum('total_price');
+        $status_bookings_grouped = $this->model::selectRaw('status, COUNT(*) as count')
+            ->groupBy('status')
+            ->pluck('count', 'status')
+            ->toArray();
+
+        return response()->json([
+            'data' => $data,
+            'categories' => $categories,
+            'total' => $total,
+            'users' => $users,
+            'items' => $items,
+            'total_earnings' => $total_earnings,
+            'status_bookings' => $status_bookings_grouped,
+            'success' => true
+        ]);
+    }
+
+    public function getPendings()
+    {
+        $pendingBookings = $this->model::where('status', 'pending')
+        ->count();
+        return response()->json(['data' => $pendingBookings, 'success' => true], 200);
+    }
     public function uploadProofOfPayment(Request $request)
     {
 

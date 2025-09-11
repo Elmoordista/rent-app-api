@@ -33,7 +33,10 @@ class UserController extends Controller
             $data->where('role','<>','admin');
 
             if($search){
-                $data->where('name', 'like', '%' . $search . '%');
+                $data->where('first_name', 'like', '%' . $search . '%');
+                $data->orWhere('last_name', 'like', '%' . $search . '%');
+                $data->orWhere('email', 'like', '%' . $search . '%');
+                $data->orWhere('username', 'like', '%' . $search . '%');
             }
             
             if($type){

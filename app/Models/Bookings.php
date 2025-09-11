@@ -22,6 +22,10 @@ class Bookings extends Model
         'delivery_option',
     ];
 
+    protected $casts = [
+        'total_price' => 'float', // or 'decimal:2'
+    ];
+
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
