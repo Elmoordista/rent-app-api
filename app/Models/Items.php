@@ -21,6 +21,8 @@ class Items extends Model
         'price_per_day',
         'available',
         'status',
+        'has_sizes_color_options',
+        'need_driver_license',
         'location',
     ];
 
@@ -29,6 +31,11 @@ class Items extends Model
     public function images()
     {
         return $this->hasMany(ItemImages::class, 'item_id', 'id');
+    }
+
+    public function variations()
+    {
+        return $this->hasMany(ItemVariation::class, 'item_id', 'id');
     }
 
     public function reviews()

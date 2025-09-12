@@ -6,6 +6,7 @@ use App\Models\Favorite;
 use App\Models\ItemImages;
 use App\Models\ItemRating;
 use App\Models\Items;
+use App\Models\ItemVariation;
 use App\Services\FileUploader;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -48,7 +49,7 @@ class ItemController extends Controller
             if($category){
                 $data->where('category_id', $category);
             }
-            $data->with('images', 'owner', 'category')
+            $data->with('images', 'owner', 'category','variations')
                 ->orderBy('created_at', 'desc');
             $data->withCount('reviews');
             $data->withAvg('reviews', 'rating');
@@ -86,8 +87,10 @@ class ItemController extends Controller
      */
     public function store(Request $request)
     {
-         try {
+        //  try {
             $data = $request->all();
+            $data['has_sizes_color_options'] = $request->has_sizes_color_options ?? 0;
+            $data['need_driver_license'] = $request->need_driver_license ?? 0;
             if($request->id){
                 $items = $this->model->find($request->id);
                 if (!$items) {
@@ -98,23 +101,93 @@ class ItemController extends Controller
                 }
                 $update = $items->update($data);
                 if($update){
-                    $filter_new_image = array_filter($request->images, function($image) {
-                        return !isset($image['id']);
-                    });
-                    $filter_to_delete_image = array_filter($request->images, function($image) {
-                        return isset($image['deleted']) && $image['deleted'];
-                    });
-                    if($filter_new_image) {
-                        $this->uploadFile($items->id, $filter_new_image);
+                    if($data['has_sizes_color_options']){
+                        foreach($request->sizes_colors as $option){
+                           if(!$option['id']){
+                                $items_variation = ItemVariation::create([
+                                        'item_id' => $items->id,
+                                        'size' => $option['size'] ?? null,
+                                        'color' => $option['color'] ?? null,
+                                        'quantity' => $option['quantity'] ?? null,
+                                ]);
+                                $path = $this->fileUploader->storeFiles($items_variation->id, $option['file_path'], 'items/variations');
+                                if($path){
+                                        $items_variation->update([
+                                            'image' => $path,
+                                        ]);
+                                }
+                           }
+                           else{
+                                $items_variation = ItemVariation::find($option['id']);
+                                if($items_variation){
+                                    $items_variation->update([
+                                        'size' => $option['size'] ?? null,
+                                        'color' => $option['color'] ?? null,
+                                        'quantity' => $option['quantity'] ?? null,
+                                    ]);
+                                    if(isset($option['is_deleted'])){
+                                        if($option['is_deleted']){
+                                            $items_variation->delete();
+                                        }
+                                    }
+                                    else if(isset($option['file_path']) && $option['file_path']){
+                                        $path = $this->fileUploader->storeFiles($items_variation->id, $option['file_path'], 'items/variations');
+                                        if($path){
+                                            // Delete old image
+                                            if($items_variation->image){
+                                                $oldImagePath = public_path($items_variation->image);
+                                                if (file_exists($oldImagePath)) {
+                                                    unlink($oldImagePath);
+                                                }
+                                            }
+                                            $items_variation->update([
+                                                'image' => $path,
+                                            ]);
+                                        }
+                                    }
+                                }
+                           }
+
+                        }
                     }
-                    if($filter_to_delete_image) {
-                        $this->deleteImage($filter_to_delete_image);
+                    else{
+                        $filter_new_image = array_filter($request->images, function($image) {
+                            return !isset($image['id']);
+                        });
+                        $filter_to_delete_image = array_filter($request->images, function($image) {
+                            return isset($image['deleted']) && $image['deleted'];
+                        });
+                        if($filter_new_image) {
+                            $this->uploadFile($items->id, $filter_new_image);
+                        }
+                        if($filter_to_delete_image) {
+                            $this->deleteImage($filter_to_delete_image);
+                        }
                     }
+
                 }
             } else {
                 $items = $this->model->create($data);
                 if ($items) {
-                   $this->uploadFile($items->id, $request->images);
+                    if($request->has_sizes_color_options){
+                        foreach($request->sizes_colors as $option){
+                           $items_variation = ItemVariation::create([
+                                'item_id' => $items->id,
+                                'size' => $option['size'] ?? null,
+                                'color' => $option['color'] ?? null,
+                                'quantity' => $option['quantity'] ?? null,
+                           ]);
+                           $path = $this->fileUploader->storeFiles($items_variation->id, $option['file_path'], 'items/variations');
+                           if($path){
+                                $items_variation->update([
+                                    'image' => $path,
+                                ]);
+                           }
+                        }
+                    }
+                    else{
+                        $this->uploadFile($items->id, $request->images);
+                    }
                 } else {
                     return response()->json([
                         'status' => false,
@@ -125,14 +198,14 @@ class ItemController extends Controller
             return response()->json([
                 'status' => true,
             ], 200); 
-        } catch (\Exception $ex) {
-            \Log::error('Error in UserController@store: ' . $ex->getMessage());
-            return response()->json([
-                'status' => false,
-                'message' => 'An error occurred while creating the user.',
-                'error' => $ex->getMessage(),
-            ], 500);
-        }
+        // } catch (\Exception $ex) {
+        //     \Log::error('Error in UserController@store: ' . $ex->getMessage());
+        //     return response()->json([
+        //         'status' => false,
+        //         'message' => 'An error occurred while creating the user.',
+        //         'error' => $ex->getMessage(),
+        //     ], 500);
+        // }
     }
 
     /**
