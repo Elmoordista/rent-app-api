@@ -220,6 +220,7 @@ class ItemController extends Controller
             $item = $this->model->with('images', 'owner')
             ->withCount('reviews')
             ->with('reviews.user','variations')
+            ->withAvg('reviews', 'rating')
             ->find($id);
             if (!$item) {
                 return response()->json([
