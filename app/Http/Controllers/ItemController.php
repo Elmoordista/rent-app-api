@@ -219,7 +219,7 @@ class ItemController extends Controller
         try {
             $item = $this->model->with('images', 'owner')
             ->withCount('reviews')
-            ->with('reviews.user')
+            ->with('reviews.user','variations')
             ->find($id);
             if (!$item) {
                 return response()->json([
@@ -335,7 +335,7 @@ class ItemController extends Controller
             if($search){
                 $items->where('name', 'like', '%' . $search . '%');
             }
-            $items->with('images');
+            $items->with('images', 'variations');
             $items->withAvg('reviews', 'rating');
 
             $items = $items->get();

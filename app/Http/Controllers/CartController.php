@@ -16,7 +16,9 @@ class CartController extends Controller
     public function index()
     {
         $user = Auth::user();
-        $cartItems = Cart::with('item.images')->where('user_id', $user->id)->get();
+        $cartItems = Cart::with('item.images','item.variations', 'variation')
+        ->where('user_id', $user->id)
+        ->get();
         return response()->json(['success' => true, 'data' => $cartItems], 200);
     }
 
@@ -41,10 +43,12 @@ class CartController extends Controller
         //check if item already in cart for user, if so update quantity instead of creating new entry
         $existingCartItem = Cart::where('user_id', Auth::id())
             ->where('item_id', $request->id)
+            ->where('variation_id', $request->variation_id)
             ->first();
 
         if ($existingCartItem) {
             $existingCartItem->quantity += $request->quantity;
+            $existingCartItem->variation_id = $request->variation_id;
             $existingCartItem->save();
         }
         else{
@@ -52,6 +56,7 @@ class CartController extends Controller
                 [
                     'user_id' => Auth::id(),
                     'item_id' => $request->id,
+                    'variation_id' => $request->variation_id,
                     'quantity' => $request->quantity,
                 ]
             );

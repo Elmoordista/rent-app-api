@@ -12,11 +12,17 @@ class Cart extends Model
     protected $fillable = [
         'user_id',
         'item_id',
+        'variation_id',
         'quantity',
     ];
 
     public function item()
     {
         return $this->belongsTo(Items::class, 'item_id');
+    }
+
+    public function variation()
+    {
+        return $this->belongsTo(ItemVariation::class, 'variation_id');
     }
 }

@@ -5,16 +5,20 @@ namespace App\Http\Controllers;
 use App\Models\Bookings;
 use App\Models\Favorite;
 use App\Models\User;
+use App\Services\FileUploader;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class UserController extends Controller
 {
     public $model;
+    public $fileUploader;
     public function __construct(
-        User $model
+        User $model,
+        FileUploader $fileUploader
     ){
         $this->model = $model;
+        $this->fileUploader = $fileUploader;
     }
     /**
      * Display a listing of the resource.
@@ -173,11 +177,93 @@ class UserController extends Controller
             ], 500);
         }
     }
+    
+    public function getLatestOrderInfo(){
+        $user = Auth::user();
+        $orderInfo = Bookings::where('user_id', $user->id)
+            ->select('id', 'notes', 'delivery_info')
+            ->latest()
+            ->first();
+        return response()->json(['data' => $orderInfo, 'success' => true], 200);
+    }
+
 
     public function getInfo(Request $request)
     {
         $user = Auth::user();
         return response()->json(['data' => $user], 200);
+    }
+
+    public function sendOtp (Request $request)
+    {
+        $data = $request->all();
+        $user = User::where('email', $data['email'])->first();
+        if(!$user){
+            return response()->json(['message' => 'Email not found', 'success' => false], 404);
+        }
+        $code = MailController::generateCode(6);
+        //send email
+        $user->update([
+            'verification_code' => $code,
+            'verification_code_expires_at' => now()->addMinutes(10)
+        ]);
+
+        $mailController = new MailController();
+        $mailController->verification($data['email'], $code);
+
+        return response()->json(['message' => 'OTP sent to your email', 'code' => $code, 'success' => true], 200);
+    }
+
+    public function resetPassword(Request $request)
+    {
+        $data = $request->all();
+        $user = User::where('email', $data['email'])->first();
+        if(!$user){
+            return response()->json(['message' => 'Email not found', 'success' => false], 404);
+        }
+        if($user->verification_code !== $data['otp']){
+            return response()->json(['message' => 'Invalid verification code', 'success' => false], 400);
+        }
+        if(now()->greaterThan($user->verification_code_expires_at)){
+            return response()->json(['message' => 'Verification code has expired', 'success' => false], 400);
+        }
+        $user->update([
+            'password' => bcrypt($data['password']),
+            'verification_code' => null,
+            'verification_code_expires_at' => null
+        ]);
+        return response()->json(['message' => 'Password reset successful', 'success' => true], 200);
+    }
+
+    public function updateProfile(Request $request)
+    {
+        $user = Auth::user();
+        $data = $request->all();
+        //check if email is already taken
+        if(isset($data['email']) && $data['email'] != $user->email){
+            $existingUser = User::where('email', $data['email'])->first();
+            if($existingUser){
+                return response()->json(['message' => 'Email is already taken', 'success' => false], 400);
+            }
+        }
+
+        $image = $request['image'];
+        if($image){
+            $image = $this->fileUploader->storeFiles($user->id, $image, 'public/images/profiles');
+        }
+        User::where('id', $user->id)->update([
+            'first_name' => isset($data['first_name']) ? $data['first_name'] : $user->first_name,
+            'last_name' => isset($data['last_name']) ? $data['last_name'] : $user->last_name,
+            'email' => isset($data['email']) ? $data['email'] : $user->email,
+            'username' => isset($data['email']) ? $data['email'] : $user->email,
+            'phone' => isset($data['phone']) ? $data['phone'] : $user->phone,
+            'address' => isset($data['address']) ? $data['address'] : $user->address,
+            'profile' => $image ? $image : $user->profile,
+        ]);
+
+        $user = User::find($user->id);
+
+        return response()->json(['message' => 'Profile updated successfully', 'data'=>$user, 'success' => true], 200);
     }
     public function getProfileSettings(Request $request)
     {

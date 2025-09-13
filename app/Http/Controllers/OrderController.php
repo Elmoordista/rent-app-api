@@ -5,12 +5,21 @@ namespace App\Http\Controllers;
 use App\Models\BookingDetail;
 use App\Models\Bookings;
 use App\Models\Cart;
+use App\Models\PaymentAccount;
+use App\Services\FileUploader;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class OrderController extends Controller
 {
+
+    public $fileUploader;
+    public function __construct(
+        FileUploader $fileUploader,
+    ){
+        $this->fileUploader = $fileUploader;
+    }
     /**
      * Display a listing of the resource.
      *
@@ -39,7 +48,7 @@ class OrderController extends Controller
      */
     public function store(Request $request)
     {
-       
+        $g_cash_info = PaymentAccount::where('type','gcash')->first();
         $total_price = 0;
         $cartItems = $request->item_to_rent;
         $booking_details = $request->booking_details;
@@ -55,16 +64,22 @@ class OrderController extends Controller
             }
         }
         $total_price = $total_price * $total_days;
+        if(isset($booking_details['selectedFileBase64']) && $booking_details['selectedFileBase64'] != null){
+           $user_id = Auth::id();
+           $drive_license = $this->fileUploader->storeFiles($user_id, $booking_details['selectedFileBase64'], 'uploads/driver_license');
+           $booking_details['driver_license'] = $drive_license;
+           unset($booking_details['selectedFileBase64']);
+        }
         $bookingDetails = json_encode($booking_details);
         $data =  [
             'user_id' => Auth::id(),
             'start_date' => Carbon::parse($start_date)->toDateTimeString(),
             'end_date' => Carbon::parse($end_date)->toDateTimeString(),
             'total_price' => $total_price,
-            'notes' => $bookingDetails,
+            'notes' => $booking_details ? $bookingDetails : null,
             'status' => 'pending',
             'payment_status' => 'unpaid',
-            'delivery_info' => $booking_details ? $bookingDetails : null,
+            'delivery_info' => null,
             'payment_type' => $booking_details['paymentType'] ?? null,
             'delivery_option' => $booking_details['deliveryOption'] ?? null,
         ];
@@ -78,6 +93,7 @@ class OrderController extends Controller
                     BookingDetail::create([
                         'booking_id' => $booking->id,
                         'item_id' => $item['item_id'],
+                        'variation_id' => $item['variation_id'] ?? null,
                         'quantity' => $item['qty'],
                         'price' => $item['pricePerDay'],
                     ]);
@@ -87,7 +103,7 @@ class OrderController extends Controller
                 }
             }
         }
-        return response()->json(['booking' => $booking, 'success' => true], 200);
+        return response()->json(['booking' => $booking, 'gcash_info' => $g_cash_info, 'success' => true], 200);
     }
 
     /**
@@ -150,7 +166,7 @@ class OrderController extends Controller
             //         $q->where('status', $status);
             //     });
             // }
-        })->with('item.images','booking');
+        })->with('item.images','booking','variation');
 
         $booking_items = $booking_items->get();
 

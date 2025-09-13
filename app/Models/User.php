@@ -6,6 +6,7 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
@@ -26,6 +27,9 @@ class User extends Authenticatable
         'last_name',
         'phone',
         'address',
+        'profile',
+        'verification_code',
+        'verification_code_expires_at',
         'role',
     ];
 
@@ -48,7 +52,8 @@ class User extends Authenticatable
     ];
 
     protected $appends =[
-        'full_name'
+        'full_name',
+        'profile_url'
     ];
 
     public function getFullNameAttribute()
@@ -58,4 +63,16 @@ class User extends Authenticatable
      }
      return $this->email;
     } 
+
+    public function getProfileUrlAttribute()
+    {
+        $storage = Storage::disk('s3');
+        if($this->profile){
+            return $storage->temporaryUrl(
+                $this->profile,
+                now()->addMinutes(5)
+            );
+        }
+        return null;
+    }
 }

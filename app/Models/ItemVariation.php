@@ -20,11 +20,34 @@ class ItemVariation extends Model
         'image',
     ];
 
-    protected $appends = ['image_url'];
+
+    protected $appends = ['image_url', 'available_quantity'];
+
+    public function getAvailableQuantityAttribute()
+    {
+        //check on on the ordered items
+        $orderedQuantity = BookingDetail::where('variation_id', $this->id)
+            ->whereHas('booking', function ($query) {
+                $query->whereIn('status', ['pending', 'confirmed']);
+            })
+            ->sum('quantity');
+
+        return $this->quantity - $orderedQuantity;
+    }
 
     public function item()
     {
         return $this->belongsTo(Items::class);
+    }
+
+    public function getSizeAttribute($value)
+    {
+        return ucfirst(strtolower($value));
+    }
+
+    public function getColorAttribute($value)
+    {
+        return ucfirst(strtolower($value));
     }
 
     public function getImageUrlAttribute()

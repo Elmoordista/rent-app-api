@@ -100,13 +100,17 @@ Route::get('/create-sqlite', function () {
         ], 500);
     }
 });
+Route::post('/user/send-otp', [UserController::class, 'sendOtp'])->name('user.send-otp');
+Route::post('/user/reset-password', [UserController::class, 'resetPassword'])->name('user.reset-password');
 
 Route::middleware('auth:sanctum')->group(function () {
 
    Route::get('/user/info', [UserController::class, 'getInfo'])->name('user.info');
+   Route::get('/user/latest-order', [UserController::class, 'getLatestOrderInfo'])->name('user.latest-order');
    Route::get('/user/favorites', [UserController::class, 'getFavorites'])->name('user.favorites');
    Route::delete('/user/favorites-remove/{id}', [UserController::class, 'removeFavorite'])->name('user.favorites.remove');
    Route::get('/user/profile-settings', [UserController::class, 'getProfileSettings'])->name('user.profile-settings');
+   Route::post('/user/update-profile', [UserController::class, 'updateProfile'])->name('user.update-profile');
 
    Route::get('/order/get-pending', [OrderController::class, 'getPendingOrders'])->name('order.get-pending');
    Route::get('/order/get-booking-details/{booking_id}', [OrderController::class, 'getPendingOrdersDetails'])->name('order.get-pending-details');
