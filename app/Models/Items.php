@@ -26,7 +26,7 @@ class Items extends Model
         'location',
     ];
 
-    protected $appends = ['is_favorite'];
+    protected $appends = ['is_favorite','available_quantity'];
 
     public function images()
     {
@@ -47,6 +47,18 @@ class Items extends Model
     {
         $user = Auth::user();
         return $user ? $this->favorites()->where('user_id', $user->id)->exists() : false;
+    }
+
+    public function getAvailableQuantityAttribute()
+    {
+        //check on on the ordered items
+        $orderedQuantity = BookingDetail::where('item_id', $this->id)
+            ->whereHas('booking', function ($query) {
+                $query->whereIn('status', ['pending', 'confirmed']);
+            })
+            ->sum('quantity');
+
+        return $this->available - $orderedQuantity;
     }
     
     public function favorites()
