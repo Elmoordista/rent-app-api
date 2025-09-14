@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class Bookings extends Model
 {
@@ -39,5 +40,22 @@ class Bookings extends Model
     public function payments()
     {
         return $this->hasOne(Payments::class, 'booking_id', 'id');
+    }
+
+    public function getNotesAttribute()
+    {
+        // Decode JSON as associative array
+        $notes = json_decode($this->attributes['notes'], true);
+
+        if($notes && !empty($notes['driver_license']) && empty($notes['book_with_driver'])){
+            $storage = Storage::disk('s3');
+
+            $notes['driver_license_url'] = $storage->temporaryUrl(
+                $notes['driver_license'], // make sure you use the value from notes
+                now()->addMinutes(5)
+            );
+        }
+
+        return json_encode($notes);
     }
 }
