@@ -336,6 +336,7 @@ class ItemController extends Controller
             if($search){
                 $items->where('name', 'like', '%' . $search . '%');
             }
+            $items->where('status', 'active');
             $items->with('images', 'variations');
             $items->withAvg('reviews', 'rating');
 

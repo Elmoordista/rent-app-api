@@ -34,7 +34,7 @@ class BookingController extends Controller
         if($status != 'all' && $status != null){
             $bookings = $bookings->where('status', $status);
         }
-        $bookings->with('user','booking_details.item.images','payments');
+        $bookings->with('user','booking_details.item.images','payments', 'booking_details.variation');
         $bookings = $bookings->paginate(isset($request->per_page) ? $request->per_page : 10);
 
         return response()->json($bookings);

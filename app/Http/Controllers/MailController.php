@@ -15,7 +15,7 @@ class MailController extends Controller
         return Mail::raw("Your verification code is: {$code}", function ($message) use ($email_address) {
             $message->to($email_address)
                 ->subject('Email Verification Code')
-                ->from('elmoordista4@gmail.com');
+                ->from(env('MAIL_FROM_ADDRESS'));
         });
     }
 

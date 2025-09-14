@@ -49,6 +49,7 @@ class CategoryController extends Controller
                 $data = $data->paginate(10);
             }
             else{
+                $data->where('status', 'active');
                 $data = $data->get();
             }
 

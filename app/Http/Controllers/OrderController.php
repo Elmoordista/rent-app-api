@@ -52,10 +52,10 @@ class OrderController extends Controller
         $total_price = 0;
         $cartItems = $request->item_to_rent;
         $booking_details = $request->booking_details;
-        $start_date = $booking_details['pickupDate'];
-        $end_date = $booking_details['returnDate'];
+        $start_date = Carbon::parse($booking_details['pickupDate']);
+        $end_date = Carbon::parse($booking_details['returnDate']);
         //calculate total days
-        $total_days = (strtotime($end_date) - strtotime($start_date)) / (60 * 60 * 24);
+        $total_days = $end_date->diffInDays($start_date);
         foreach($cartItems as $item) {
             if(isset($item['item_id'])) {
                 //price per string to end and remove 
@@ -103,6 +103,7 @@ class OrderController extends Controller
                 }
             }
         }
+        $booking['total_days'] = $total_days;
         return response()->json(['booking' => $booking, 'gcash_info' => $g_cash_info, 'success' => true], 200);
     }
 
@@ -172,12 +173,27 @@ class OrderController extends Controller
 
         return response()->json(['data' => $booking_items], 200);
     }
-    
-    public function getPendingOrders ()
+
+    public function cancelOrder ($id)
     {
         $user = Auth::user();
+        $booking = Bookings::where('id', $id)
+            ->where('user_id', $user->id)
+            ->first();
+        if(!$booking) {
+            return response()->json(['message' => 'Order not found or cannot be cancelled'], 404);
+        }
+        $booking->status = 'cancelled';
+        $booking->save();
+        return response()->json(['message' => 'Order cancelled successfully'], 200);
+    }
+    
+    public function getPendingOrders (Request $request)
+    {
+        $user = Auth::user();
+        $status = isset($request->status) ? $request->status : 'pending';
         $pendingOrders = Bookings::where('user_id', $user->id)
-            ->whereIn('status', ['pending'])
+            ->where('status', $status)
             ->with('booking_details.item.images','payments')
             ->get();
         return response()->json(['data' => $pendingOrders], 200);
