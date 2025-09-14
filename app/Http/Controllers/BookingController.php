@@ -196,7 +196,7 @@ class BookingController extends Controller
                 'pending' => 0,
                 'confirmed' => 0,
                 'completed' => 0,
-                'canceled' => 0
+                'cancelled' => 0
             ],
             'success' => true
         ]);
