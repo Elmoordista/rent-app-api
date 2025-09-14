@@ -201,7 +201,7 @@ class OrderController extends Controller
     public function getPendingOrdersDetails ($booking_id)
     {
         $pendingOrders = BookingDetail::where('booking_id', $booking_id)
-            ->with('item.images')
+            ->with('item.images','variation')
             ->get();    
         return response()->json(['data' => $pendingOrders], 200);
     }
