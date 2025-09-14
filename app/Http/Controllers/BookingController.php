@@ -192,7 +192,12 @@ class BookingController extends Controller
             'users' => $users,
             'items' => $items,
             'total_earnings' => $total_earnings,
-            'status_bookings' => $status_bookings_grouped,
+            'status_bookings' => count($status_bookings_grouped) ? $status_bookings_grouped : [
+                'pending' => 0,
+                'confirmed' => 0,
+                'completed' => 0,
+                'canceled' => 0
+            ],
             'success' => true
         ]);
     }
