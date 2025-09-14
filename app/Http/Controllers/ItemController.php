@@ -41,7 +41,8 @@ class ItemController extends Controller
             $data = $this->model::query();
 
             if($search){
-                $data->where('name', 'like', '%' . $search . '%');
+                //use lower case
+                $data->whereRaw('LOWER(name) LIKE ?', ['%' . strtolower($search) . '%']);
             }
             if($status && $status != 'all'){
                 $data->where('status', $status);
