@@ -211,9 +211,34 @@ class BookingController extends Controller
 
     public function getCategoriesReports(Request $request)
     {
-        $bookings = $this->model::whereIn('status', ['confirmed', 'completed'])
-            ->with('booking_details.item.category')
-            ->get();
+        $filter_type = $request->filter_type ?? null;
+        $day = $request->day ?? null;
+        $month = $request->month ?? null;
+        $date_from = $request->dateFrom ?? null;
+        $date_to = $request->dateTo ?? null;
+        $year = $request->year ?? null;
+
+        $bookings = $this->model::query();
+        // Apply filters
+        if ($filter_type == 'Day' && $day) {
+            $bookings->whereDate('created_at', Carbon::parse($day));
+        } elseif ($filter_type == 'Monthly' && $month) {
+            $bookings->whereMonth('created_at', Carbon::parse($month)->month)
+                    ->whereYear('created_at', Carbon::parse($month)->year);
+        } elseif ($filter_type == 'Date Range' && $date_from && $date_to) {
+            $bookings->whereBetween('created_at', [Carbon::parse($date_from), Carbon::parse($date_to)]);
+        } elseif ($filter_type == 'Yearly' && $year) {
+            $bookings->whereYear('created_at', $year);
+        }
+
+        // $bookings = $this->model::whereIn('status', ['confirmed', 'completed'])
+        //     ->with('booking_details.item.category')
+        //     ->get();
+
+        $bookings->whereIn('status', ['confirmed', 'completed'])
+                ->with('booking_details.item.category');
+
+        $bookings = $bookings->get();
 
         $random_colors = [];
         $categories = [];
@@ -230,7 +255,7 @@ class BookingController extends Controller
             $categories_sales[] = $total_sales;
             $random_colors[] = $this->randomHexColor();
         });
-        $recent_bookings = $this->getRecentCategoriesOrders();
+        $recent_bookings = $this->getRecentCategoriesOrders($filter_type, $day, $month, $date_from, $date_to, $year);
         return response()->json([
             'sales' => $categories_sales,
             'categories' => $categories,
@@ -240,13 +265,32 @@ class BookingController extends Controller
         ]);
     }
 
-    public function getRecentCategoriesOrders()
-    {
-        $recent_bookings = $this->model::whereIn('status', ['confirmed', 'completed'])
-            ->with('booking_details.item.category')
-            ->orderBy('created_at', 'desc')
+    public function getRecentCategoriesOrders  ($filter_type, $day, $month, $date_from, $date_to, $year)
+    {   
+        $bookings = $this->model::query();
+
+        if ($filter_type == 'Day' && $day) {
+            $bookings->whereDate('created_at', Carbon::parse($day));
+        } elseif ($filter_type == 'Monthly' && $month) {
+            $bookings->whereMonth('created_at', Carbon::parse($month)->month)
+                    ->whereYear('created_at', Carbon::parse($month)->year);
+        } elseif ($filter_type == 'Date Range' && $date_from && $date_to) {
+            $bookings->whereBetween('created_at', [Carbon::parse($date_from), Carbon::parse($date_to)]);
+        } elseif ($filter_type == 'Yearly' && $year) {
+            $bookings->whereYear('created_at', $year);
+        }
+
+        $bookings->whereIn('status', ['confirmed', 'completed'])
+                ->with('booking_details.item.category','user');
+        $recent_bookings = $bookings->orderBy('created_at', 'desc')
             ->take(10)
             ->get();
+
+        // $recent_bookings = $this->model::whereIn('status', ['confirmed', 'completed'])
+        //     ->with('booking_details.item.category')
+        //     ->orderBy('created_at', 'desc')
+        //     ->take(10)
+        //     ->get();
 
         return $data = $recent_bookings->map(function ($booking) {
             return [
