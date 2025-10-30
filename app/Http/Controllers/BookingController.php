@@ -245,7 +245,7 @@ class BookingController extends Controller
         $recent_bookings = $this->model::whereIn('status', ['confirmed', 'completed'])
             ->with('booking_details.item.category')
             ->orderBy('created_at', 'desc')
-            ->take(5)
+            ->take(10)
             ->get();
 
         return $data = $recent_bookings->map(function ($booking) {
