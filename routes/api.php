@@ -116,7 +116,8 @@ Route::middleware('auth:sanctum')->group(function () {
    Route::get('/order/get-booking-details/{booking_id}', [OrderController::class, 'getPendingOrdersDetails'])->name('order.get-pending-details');
    Route::get('/order/get-confirmed-bookings', [OrderController::class, 'getConfirmedOrders'])->name('order.get-confirmed-bookings');
    Route::put('/order/cancel-order/{id}', [OrderController::class, 'cancelOrder'])->name('order.cancel-order');
-
+   
+   Route::get('/booking/get-categories-reports', [BookingController::class, 'getCategoriesReports'])->name('booking.get-categories-reports');
    Route::get('/booking/get-pendings', [BookingController::class, 'getPendings'])->name('booking.get-pendings');
    Route::post('/booking/upload-proof-of-payment', [BookingController::class, 'uploadProofOfPayment'])->name('payment.upload');
    Route::post('/booking/get-filtered-bookings', [BookingController::class, 'getFilteredBookings'])->name('booking.get-filtered-bookings');

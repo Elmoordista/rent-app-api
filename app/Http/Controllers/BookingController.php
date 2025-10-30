@@ -15,12 +15,15 @@ class BookingController extends Controller
 
     public $fileUploader;
     public $model;
+    public $items;
     public function __construct(
         FileUploader $fileUploader,
-        Bookings $model
+        Bookings $model,
+        Items $items
     ){
         $this->fileUploader = $fileUploader;
         $this->model = $model;
+        $this->items = $items;
     }
     /**
      * Display a listing of the resource. 
@@ -180,6 +183,8 @@ class BookingController extends Controller
         $users = User::count();
         $items = Items::count();
         $total_earnings = $this->model::whereIn('status', ['confirmed', 'completed'])->sum('total_price');
+        $available_items = $this->items::where('status', 'active')->count();
+        $total_rentals = $this->model::whereIn('status', ['confirmed', 'completed'])->count();
         $status_bookings_grouped = $this->model::selectRaw('status, COUNT(*) as count')
             ->groupBy('status')
             ->pluck('count', 'status')
@@ -192,6 +197,8 @@ class BookingController extends Controller
             'users' => $users,
             'items' => $items,
             'total_earnings' => $total_earnings,
+            'available_items' => $available_items,
+            'total_rentals' => $total_rentals,
             'status_bookings' => count($status_bookings_grouped) ? $status_bookings_grouped : [
                 'pending' => 0,
                 'confirmed' => 0,
@@ -200,6 +207,62 @@ class BookingController extends Controller
             ],
             'success' => true
         ]);
+    }
+
+    public function getCategoriesReports(Request $request)
+    {
+        $bookings = $this->model::whereIn('status', ['confirmed', 'completed'])
+            ->with('booking_details.item.category')
+            ->get();
+
+        $random_colors = [];
+        $categories = [];
+        $categories_sales = [];
+
+        $bookings->groupBy(function ($booking) {
+            return $booking->booking_details->first()->item->category->name;
+        })->each(function ($group, $category_name) use (&$categories, &$categories_sales, &$random_colors) {
+            $total_sales = $group->sum(function ($booking) {
+                return $booking->total_price;
+            });
+
+            $categories[] = $category_name;
+            $categories_sales[] = $total_sales;
+            $random_colors[] = $this->randomHexColor();
+        });
+        $recent_bookings = $this->getRecentCategoriesOrders();
+        return response()->json([
+            'sales' => $categories_sales,
+            'categories' => $categories,
+            'colors' => $random_colors,
+            'recent_bookings' => $recent_bookings,
+            'success' => true
+        ]);
+    }
+
+    public function getRecentCategoriesOrders()
+    {
+        $recent_bookings = $this->model::whereIn('status', ['confirmed', 'completed'])
+            ->with('booking_details.item.category')
+            ->orderBy('created_at', 'desc')
+            ->take(5)
+            ->get();
+
+        return $data = $recent_bookings->map(function ($booking) {
+            return [
+                'booking_id' => $booking->id,
+                'category' => $booking->booking_details->first()->item->category->name,
+                'total_price' => $booking->total_price,
+                'rented_by' => $booking->user->name,
+                'item_name' => $booking->booking_details->first()->item->name,
+                'created_at' => $booking->created_at->toDateTimeString(),
+            ];
+        });
+
+    }
+
+    public function randomHexColor() {
+        return sprintf('#%06X', mt_rand(0, 0xFFFFFF));
     }
 
     public function getPendings()
