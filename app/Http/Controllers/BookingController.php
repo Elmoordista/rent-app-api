@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Bookings;
+use App\Models\Category;
 use App\Models\Items;
 use App\Models\Payments;
 use App\Models\User;
@@ -217,6 +218,7 @@ class BookingController extends Controller
         $date_from = $request->dateFrom ?? null;
         $date_to = $request->dateTo ?? null;
         $year = $request->year ?? null;
+        $category_id = $request->category_id ?? null;
 
         $bookings = $this->model::query();
         // Apply filters
@@ -229,6 +231,12 @@ class BookingController extends Controller
             $bookings->whereBetween('created_at', [Carbon::parse($date_from), Carbon::parse($date_to)]);
         } elseif ($filter_type == 'Yearly' && $year) {
             $bookings->whereYear('created_at', $year);
+        }
+
+        if($category_id){
+            $bookings->whereHas('booking_details.item.category', function($query) use ($category_id){
+                $query->where('id', $category_id);
+            });
         }
 
         // $bookings = $this->model::whereIn('status', ['confirmed', 'completed'])
@@ -255,17 +263,19 @@ class BookingController extends Controller
             $categories_sales[] = $total_sales;
             $random_colors[] = $this->randomHexColor();
         });
-        $recent_bookings = $this->getRecentCategoriesOrders($filter_type, $day, $month, $date_from, $date_to, $year);
+        $recent_bookings = $this->getRecentCategoriesOrders($filter_type, $day, $month, $date_from, $date_to, $year, $category_id);
+        $categories = $this->getCategories();
         return response()->json([
             'sales' => $categories_sales,
             'categories' => $categories,
             'colors' => $random_colors,
             'recent_bookings' => $recent_bookings,
+            'categories' => $categories,
             'success' => true
         ]);
     }
 
-    public function getRecentCategoriesOrders  ($filter_type, $day, $month, $date_from, $date_to, $year)
+    public function getRecentCategoriesOrders  ($filter_type, $day, $month, $date_from, $date_to, $year, $category_id)
     {   
         $bookings = $this->model::query();
 
@@ -278,6 +288,12 @@ class BookingController extends Controller
             $bookings->whereBetween('created_at', [Carbon::parse($date_from), Carbon::parse($date_to)]);
         } elseif ($filter_type == 'Yearly' && $year) {
             $bookings->whereYear('created_at', $year);
+        }
+
+        if($category_id){
+            $bookings->whereHas('booking_details.item.category', function($query) use ($category_id){
+                $query->where('id', $category_id);
+            });
         }
 
         $bookings->whereIn('status', ['confirmed', 'completed'])
@@ -303,6 +319,10 @@ class BookingController extends Controller
             ];
         });
 
+    }
+
+    public function getCategories(){
+        return $categories = Category::query()->select('id', 'name')->get();
     }
 
     public function randomHexColor() {
