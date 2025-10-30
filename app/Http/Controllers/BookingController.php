@@ -264,13 +264,13 @@ class BookingController extends Controller
             $random_colors[] = $this->randomHexColor();
         });
         $recent_bookings = $this->getRecentCategoriesOrders($filter_type, $day, $month, $date_from, $date_to, $year, $category_id);
-        $categories = $this->getCategories();
+        $categories_lists = $this->getCategories();
         return response()->json([
             'sales' => $categories_sales,
             'categories' => $categories,
             'colors' => $random_colors,
             'recent_bookings' => $recent_bookings,
-            'categories' => $categories,
+            'categories_lists' => $categories_lists,
             'success' => true
         ]);
     }
