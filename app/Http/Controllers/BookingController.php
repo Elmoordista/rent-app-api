@@ -253,7 +253,7 @@ class BookingController extends Controller
                 'booking_id' => $booking->id,
                 'category' => $booking->booking_details->first()->item->category->name,
                 'total_price' => $booking->total_price,
-                'rented_by' => $booking->user->name,
+                'rented_by' => $booking->user->full_name ? $booking->user->full_name : $booking->user->email,
                 'item_name' => $booking->booking_details->first()->item->name,
                 'created_at' => $booking->created_at->toDateTimeString(),
             ];
