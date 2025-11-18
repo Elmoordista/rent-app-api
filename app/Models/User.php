@@ -61,6 +61,9 @@ class User extends Authenticatable
      if($this->first_name && $this->last_name){
          return $this->first_name . ' '. $this->last_name;
      }
+     if($this->name){
+         return $this->name;
+     }
      return $this->email;
     } 
 

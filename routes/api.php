@@ -127,6 +127,8 @@ Route::middleware('auth:sanctum')->group(function () {
    Route::post('/item/add-review/{id}', [ItemController::class, 'addReview'])->name('item.add-review');
    Route::post('/item/add-to-favorite', [ItemController::class, 'addToFavorite'])->name('item.add-to-favorite');
 
+   Route::post('/pdf/export', [PdfController::class, 'export'])->name('pdf.export');
+
    Route::resources([
       'items' => ItemController::class,
       'user' => UserController::class,
