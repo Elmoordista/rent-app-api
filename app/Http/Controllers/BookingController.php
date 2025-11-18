@@ -123,6 +123,7 @@ class BookingController extends Controller
         $date_from = $request->dateFrom ?? null;
         $date_to = $request->dateTo ?? null;
         $year = $request->year ?? null;
+        $category_id = $request->category_id ?? null;
 
         $bookings = $this->model::query();
 
@@ -136,6 +137,12 @@ class BookingController extends Controller
             $bookings->whereBetween('created_at', [Carbon::parse($date_from), Carbon::parse($date_to)]);
         } elseif ($filter_type == 'Yearly' && $year) {
             $bookings->whereYear('created_at', $year);
+        }
+
+        if($category_id){
+            $bookings->whereHas('booking_details.item.category', function($query) use ($category_id){
+                $query->where('id', $category_id);
+            });
         }
 
         $bookings->whereIn('status', ['confirmed', 'completed']);
@@ -183,9 +190,20 @@ class BookingController extends Controller
         $total = array_sum($data);
         $users = User::count();
         $items = Items::count();
-        $total_earnings = $this->model::whereIn('status', ['confirmed', 'completed'])->sum('total_price');
+        
+        $total_earnings = $this->model::whereIn('status', ['confirmed', 'completed'])
+        ->when($filter_type, function ($query) use ($day, $filter_type, $month, $date_from, $date_to, $year, $category_id) {
+            return $this->bookingFilter($query, $filter_type, $day, $month, $date_from, $date_to, $year, $category_id);
+        })
+        ->sum('total_price');
+
         $available_items = $this->items::where('status', 'active')->count();
-        $total_rentals = $this->model::whereIn('status', ['confirmed', 'completed'])->count();
+        $total_rentals = $this->model::whereIn('status', ['confirmed', 'completed'])
+        ->when($filter_type, function ($query) use ($day, $filter_type, $month, $date_from, $date_to, $year, $category_id) {
+            return $this->bookingFilter($query, $filter_type, $day, $month, $date_from, $date_to, $year, $category_id);
+        })
+        ->count();
+
         $status_bookings_grouped = $this->model::selectRaw('status, COUNT(*) as count')
             ->groupBy('status')
             ->pluck('count', 'status')
@@ -209,6 +227,35 @@ class BookingController extends Controller
             'success' => true
         ]);
     }
+
+    public function bookingFilter($model, $filter_type, $day, $month, $date_from, $date_to, $year, $category_id = null)
+    {
+        if ($filter_type === 'Day' && $day) {
+            $model->whereDate('created_at', Carbon::parse($day));
+
+        } elseif ($filter_type === 'Monthly' && $month) {
+            $model->whereMonth('created_at', Carbon::parse($month)->month)
+                ->whereYear('created_at', Carbon::parse($month)->year);
+
+        } elseif ($filter_type === 'Date Range' && $date_from && $date_to) {
+            $model->whereBetween('created_at', [
+                Carbon::parse($date_from),
+                Carbon::parse($date_to)
+            ]);
+
+        } elseif ($filter_type === 'Yearly' && $year) {
+            $model->whereYear('created_at', $year);
+        }
+
+        if($category_id){
+            $model->whereHas('booking_details.item.category', function($query) use ($category_id){
+                $query->where('id', $category_id);
+            });
+        }
+
+        return $model; // <-- important!
+    }
+
 
     public function getCategoriesReports(Request $request)
     {
